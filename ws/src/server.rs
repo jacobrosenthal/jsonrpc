@@ -37,6 +37,13 @@ impl Server {
     pub fn addr(&self) -> &SocketAddr {
         &self.addr
     }
+    /// Returns a Broadcaster to the server that can be used to close it while another thread is
+    /// blocking in `wait`.
+    pub fn broadcaster(&self) -> Broadcaster {
+        Broadcaster {
+            broadcaster: self.broadcaster.clone(),
+        }
+    }
 
     /// Starts a new `WebSocket` server in separate thread.
     /// Returns a `Server` handle which closes the server when droped.
@@ -162,6 +169,25 @@ impl CloseHandle {
         let _ = self.broadcaster.shutdown();
         if let Some(executor) = self.executor.lock().unwrap().take() {
             executor.close()
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Broadcaster {
+    broadcaster: ws::Sender,
+}
+
+impl Broadcaster {
+    /// Closes the `Server`.
+    #[inline]
+    pub fn send(&self, msg: std::vec::Vec<u8>) -> Result<()> {
+        match self.broadcaster.send(msg).map_err(Error::from) {
+            Err(error) => {
+                error!("Error while running sending. Details: {:?}", error);
+                Err(error)
+            }
+            Ok(_server) => Ok(()),
         }
     }
 }
