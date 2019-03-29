@@ -181,7 +181,10 @@ pub struct Broadcaster {
 impl Broadcaster {
     /// Closes the `Server`.
     #[inline]
-    pub fn send(&self, msg: std::vec::Vec<u8>) -> Result<()> {
+    pub fn send<M>(&self, msg: M) -> Result<()>
+    where
+        M: Into<ws::Message>,
+    {
         match self.broadcaster.send(msg).map_err(Error::from) {
             Err(error) => {
                 error!("Error while running sending. Details: {:?}", error);
